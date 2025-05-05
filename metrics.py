@@ -22,16 +22,22 @@ def assd_eval(predict,label,num_classes):
     return assd_all[1:]
     
 def create_visual_anno(anno):
-    assert np.max(anno) < 7 # only 7 classes are supported, add new color in label2color_dict
+    # assert np.max(anno) < 7 # only 7 classes are supported, add new color in label2color_dict
     label2color_dict = {
-        0: [0, 0, 0],
-        1: [0,0,255],  
-        2: [0, 255, 0], 
-        3: [0, 0, 255], 
-        4: [255, 215, 0],  
-        5: [160, 32, 100],  
-        6: [255, 64, 64],  
-        7: [139, 69, 19],  
+        0:  [0, 0, 0],         # background
+        1:  [0, 0, 255],       # blue
+        2:  [0, 255, 0],       # green
+        3:  [255, 0, 0],       # red
+        4:  [255, 255, 0],     # yellow
+        5:  [255, 0, 255],     # magenta
+        6:  [0, 255, 255],     # cyan
+        7:  [128, 0, 0],       # maroon
+        8:  [0, 128, 0],       # dark green
+        9:  [0, 0, 128],       # navy
+        10: [128, 128, 0],     # olive
+        11: [128, 0, 128],     # purple
+        12: [0, 128, 128],     # teal
+        13: [192, 192, 192],   # silver/gray
     }
     # visualize
     visual_anno = np.zeros((anno.shape[0], anno.shape[1], 3), dtype=np.uint8)

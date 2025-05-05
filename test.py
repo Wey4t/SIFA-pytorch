@@ -13,7 +13,7 @@ import cv2
 from utils import parse_config
 import os
 
-config = "/data2/jianghao/Two/SIFA/config/train.cfg"
+config = "config/train.cfg"
 config = parse_config(config)
 exp_name = config['train']['exp_name']
 

@@ -1,4 +1,5 @@
 from utils import UnpairedDataset, parse_config,get_config, set_random
+from transforms import Compose, Normalization, Resize
 import yaml
 import matplotlib.pyplot as plt
 from model import SIFA
@@ -8,12 +9,14 @@ import numpy as np
 import matplotlib
 import os
 import configparser
+from tqdm import tqdm
+import wandb
 matplotlib.use('Agg')
 
 # train
 def train():
     # load config
-    config = "./SIFA/config/train.cfg"
+    config = "./config/train.cfg"
     config = parse_config(config)
     # load data
     print(config)
@@ -22,8 +25,11 @@ def train():
     batch_size = config['train']['batch_size']
     
 
-
-    trainset = UnpairedDataset(A_path, B_path)
+    transform = Compose([
+        Normalization(keys=['A',  'B']),
+        Resize(size=(256, 256))
+    ])
+    trainset = UnpairedDataset(A_path, B_path, transform=transform)
     train_loader = DataLoader(trainset, batch_size,
                               shuffle=True, drop_last=True)
     # load exp_name
@@ -32,17 +38,25 @@ def train():
     loss_cycle = []
     loss_seg = []
     # load model
+    # try:
+    #     wandb.init(project="sifa", name=folder_name, config=vars(args))
+    #     wandb.config.update(args)  # Log all hyperparameters
+    #     self.wandb_enable = True
+    # except Exception as e:
+    #     self.wandb_enable = False
+    #     self.log(f"[Warning] wandb not initialized: {e}")
 
-
-    device = torch.device('cuda:{}'.format(config['train']['gpu']))
+    # device = torch.device('cuda:{}'.format(config['train']['gpu']))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = torch.device('cpu')
+    print("Using:",torch.cuda.get_device_name(0))
     sifa_model = SIFA(config).to(device)
     sifa_model.train()
     sifa_model.initialize()
     num_epochs = config['train']['num_epochs']
     save_epoch = num_epochs // 20
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         for i, (A, A_label, B, _) in enumerate(train_loader):
 
             A = A.to(device).detach()
@@ -60,8 +74,10 @@ def train():
             if(not os.path.exists(model_dir)):
                 os.mkdir(model_dir)
             sifa_model.sample_image(epoch, exp_name)
+            print('save model to {}/model-{}.pth'.format(model_dir, epoch+1))
             torch.save(sifa_model.state_dict(),
                        '{}/model-{}.pth'.format(model_dir, epoch+1))
+            print('save model finished')
         sifa_model.update_lr()
 
     print('train finished')

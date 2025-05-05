@@ -15,9 +15,6 @@ np.random.seed(SEED)
 valid_count = 0
 train_count = 0
 
-# input_path = "/mnt/d/Jiahe/Cornell/data"
-# output_path = "/mnt/d/Jiahe/Cornell/data_npy"
-# vis_path = "/mnt/d/Jiahe/Cornell/data_vis"
 
 root_proj = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 root = os.path.dirname(os.path.realpath(__file__))
@@ -28,17 +25,14 @@ root = os.path.dirname(os.path.realpath(__file__))
 # output_train = f"{root}/data_npy/train"
 print(root_proj)
 
-ct_path = "/home/jwu235/bio/debug/data/ct/image"
-ct_label_path = "/home/jwu235/bio/debug/data/ct/label"
-mr_path = "/home/jwu235/bio/debug/data/mri"
+ct_path = ""
+ct_label_path = ""
+mr_path = ""
 output_ct_path = "./data/source"
 output_mr_path = "./data/target"
-# vis_path = f"{root_proj}/UDADiff_project/data_vis"/
-output_valid = f"{root_proj}/UDADiff_project/UDADiffusion/data_npy/valid"
-output_train = f"{root_proj}/UDADiff_project/UDADiffusion/data_npy/train"
 
-# os.makedirs(output_valid, exist_ok=True)
-# os.makedirs(output_train, exist_ok=True)
+os.makedirs(output_ct_path, exist_ok=True)
+os.makedirs(output_mr_path, exist_ok=True)
 
 
 # Transformations
@@ -112,11 +106,13 @@ def process_ct(file_path, case_id, matching_label):
     # Load NIfTI file
     nifti_img = nib.load(file_path)
     ct_data = nifti_img.get_fdata()
-    nifti_img = nib.load(file_path)
+    nifti_img = nib.load(matching_label)
     ct_label = nifti_img.get_fdata()
     # Save original stats
     original_min = np.min(ct_data)
     original_max = np.max(ct_data)
+    original_label_min = np.min(ct_label)
+    original_label_max = np.max(ct_label)
     ct_label = np.moveaxis(ct_label,2,0)
     ct_data = np.moveaxis(ct_data, 2, 0)  # Move the last axis to the first position
     # Apply interval slice
@@ -127,7 +123,40 @@ def process_ct(file_path, case_id, matching_label):
 
     return ct_normalized, ct_label
 
+def process_labeled_ct(file_path, case_id, matching_label):
+    """Process a CT image and visualize the steps, skipping empty labels."""
+    import nibabel as nib
+    import numpy as np
 
+    # Load NIfTI volumes
+    ct_img = nib.load(file_path)
+    ct_data = ct_img.get_fdata()
+
+    label_img = nib.load(matching_label)
+    ct_label = label_img.get_fdata()
+
+    # Move axis (z to first) for consistency
+    ct_data = np.moveaxis(ct_data, 2, 0)
+    ct_label = np.moveaxis(ct_label, 2, 0)
+
+    # Slice at intervals
+    ct_data = interval_slice(ct_data, interval=4)
+    ct_label = interval_slice(ct_label, interval=4)
+
+    # Remove slices where label is all background (all zeros)
+    valid_indices = [i for i in range(len(ct_label)) if np.any(ct_label[i] != 0)]
+    if not valid_indices:
+        print(f"[{case_id}] Skipped: All slices have background-only labels.")
+        return None, None  # Skip this pair
+
+    # Filter valid slices
+    ct_data = ct_data[valid_indices]
+    ct_label = ct_label[valid_indices]
+
+    # Normalize CT data
+    ct_normalized = normalize_ct(ct_data).astype(np.float32)
+
+    return ct_normalized, ct_label
 def process_mri(file_path, case_id):
     """Process an MRI image and visualize the steps."""
     # Load NIfTI file
@@ -195,7 +224,7 @@ if __name__ == "__main__":
             else:
                 print("find:",matching_label, ct_file)
                 raise FileNotFoundError(f"Label file {matching_label} not found.")
-            s,l = process_ct(ct_file, case_id, matching_label)
+            s,l = process_labeled_ct(ct_file, case_id, matching_label)
             # output_base = choose_output_base(
             #     output_root=output_ct_path,
             #     case_id=case_id,

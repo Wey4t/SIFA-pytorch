@@ -221,7 +221,7 @@ def parse_config(filename):
 
 class UnpairedDataset(Dataset):
     #get unpaired dataset, such as MR-CT dataset
-    def __init__(self,A_path,B_path):
+    def __init__(self,A_path,B_path, transform=None):
         listA = os.listdir(A_path)
         listB = os.listdir(B_path)
         self.listA = [os.path.join(A_path,k) for k in listA]
@@ -229,22 +229,29 @@ class UnpairedDataset(Dataset):
         self.Asize = len(self.listA)
         self.Bsize = len(self.listB)
         self.dataset_size = max(self.Asize,self.Bsize)
-        
+        self.transform = transform  
     def __getitem__(self,index):
+        # print(self.listA[index]," load filename ")
         if self.Asize == self.dataset_size:
-            A,A_gt = load_npz(self.listA[index])
-            B,B_gt = load_npz(self.listB[random.randint(0, self.Bsize - 1)])
-        else :
-            B,B_gt = load_npz(self.listB[index])
-            A,A_gt = load_npz(self.listA[random.randint(0, self.Asize - 1)])
-
-
+            A, A_gt = load_npz(self.listA[index])
+            B, B_gt = load_npz(self.listB[random.randint(0, self.Bsize - 1)])
+        else:
+            B, B_gt = load_npz(self.listB[index])
+            A, A_gt = load_npz(self.listA[random.randint(0, self.Asize - 1)])
         A = torch.from_numpy(A.copy()).unsqueeze(0).float()
         A_gt = torch.from_numpy(A_gt.copy()).unsqueeze(0).float()
         B = torch.from_numpy(B.copy()).unsqueeze(0).float()
         B_gt = torch.from_numpy(B_gt.copy()).unsqueeze(0).float()
-        return A,A_gt,B,B_gt
-        
+        sample = {
+            "A": A,
+            "B": B,
+        }
+        if self.transform:
+            sample = self.transform(sample)
+        A = sample["A"]
+        B = sample["B"]
+        return sample["A"], A_gt, sample["B"], B_gt
+
     def __len__(self):
         return self.dataset_size
         
