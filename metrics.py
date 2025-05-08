@@ -18,6 +18,9 @@ def assd_eval(predict,label,num_classes):
     for c in range(num_classes):
         reference = (label==c) * 1
         result = (predict==c) * 1
+        if np.unique(result).shape[0] == 1 and np.unique(result)[0] == 0 or np.unique(reference).shape[0] == 1 and np.unique(result)[0] == 0:
+            assd_all[c] = 0
+            continue    
         assd_all[c] = metric.binary.assd(result,reference)
     return assd_all[1:]
     

@@ -216,7 +216,6 @@ if __name__ == "__main__":
     print("Processing CT files...")
     ct_files = list(Path(ct_path).glob('*.nii.gz'))
     print(f"Found {len(ct_files)} CT files in {ct_path}")
-    # ct_files = ct_files[:1]
     for ct_file in tqdm(ct_files):
         try:
             case_id = extract_ct_case_id(ct_file.name)
@@ -240,7 +239,7 @@ if __name__ == "__main__":
                 if height != 256 or width != 256:
                         zoom_factors = (256.0 / height, 256.0 / width)
                         slice = zoom(slice, zoom_factors, order=1)
-                        label = zoom(label, zoom_factors, order=1)
+                        label = zoom(label, zoom_factors, order=0)
                 ''''NPZ file, where '[arr_0]' contains the image data, and '[arr_1]' contains the corresponding labels: '''
                 data_dict = {"arr_0": slice, "arr_1": label} 
                 np.savez_compressed(f"{output_base}/{case_id}_s{i:04d}.npz", **data_dict)
@@ -250,7 +249,6 @@ if __name__ == "__main__":
     print("Processing MRI files...")
     mri_files = list(Path(mr_path).glob('*.nii.gz'))
     print(f"Found {len(mri_files)} MRI files in {mr_path}")
-    # mri_files = mri_files[:1]
 
     for mri_file in tqdm(mri_files):
         try:

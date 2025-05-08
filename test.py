@@ -13,6 +13,7 @@ import cv2
 from utils import parse_config
 import os
 import imageio
+from tqdm import tqdm
 
 config = "config/train.cfg"
 config = parse_config(config)
@@ -61,7 +62,7 @@ test_loader = DataLoader(test_dataset,batch_size,shuffle=False)
 all_batch_dice = []
 all_batch_assd = []
 with torch.no_grad():
-    for it,(xt,xt_label) in enumerate(test_loader):        
+    for it,(xt,xt_label) in tqdm(enumerate(test_loader)):        
         xt = xt.to(device)
         xt_label = xt_label.numpy().squeeze().astype(np.uint8)
         output = sifa_model.test_seg(xt).detach()
@@ -97,22 +98,45 @@ with torch.no_grad():
         all_batch_assd.append(one_case_assd)
         
         
-
+class_names = [
+    "Liver", 
+    "Right kidney", 
+    "Spleen", 
+    "Pancreas", 
+    "Aorta", 
+    "Inferior Vena Cava", 
+    "Right Adrenal Gland", 
+    "Left Adrenal Gland", 
+    "Gallbladder", 
+    "Esophagus", 
+    "Stomach", 
+    "Duodenum", 
+    "Left kidney"
+]
 all_batch_dice = np.array(all_batch_dice)
 all_batch_assd = np.array(all_batch_assd)
-for i in range(all_batch_dice.shape[0]):
-    print('case {} dice:'.format(i+1),all_batch_dice[i])
-    print('case {} assd:'.format(i+1),all_batch_assd[i])
-    visual_case('{}/xt-{}.jpg'.format(results, i+1), '{}/output-{}.jpg'.format(results, i+1), title1='pred', title2='gt')
 mean_dice = np.mean(all_batch_dice,axis=0) 
 std_dice = np.std(all_batch_dice,axis=0) 
 mean_assd = np.mean(all_batch_assd,axis=0)
 std_assd = np.std(all_batch_assd,axis=0)
-print('-----------')
-print('Dice mean:{}'.format(mean_dice))
-print('Dice std:{}'.format(std_dice))
-print('total mean dice:',np.mean(mean_dice))
-print('ASSD mean:{}'.format(mean_assd))
-print('ASSD std:{}'.format(std_assd))
-print('total mean assd:',np.mean(mean_assd))
-print('-----------')
+print('Dice scores per class:')
+print('-' * 50)
+print(f"{'Class':<25} {'Mean Dice':<15} {'Std Dice':<15}")
+print('-' * 50)
+for i in range(13):
+    print(f"{class_names[i]:<25} {mean_dice[i]:.4f}       {std_dice[i]:.4f}")
+print('-' * 50)
+print(f"{'Overall':<25} {np.mean(mean_dice):.4f}       {np.mean(std_dice):.4f}")
+print('\n')
+
+# Print ASSD scores for each class
+print('ASSD scores per class:')
+print('-' * 50)
+print(f"{'Class':<25} {'Mean ASSD':<15} {'Std ASSD':<15}")
+print('-' * 50)
+for i in range(13):
+    print(f"{class_names[i]:<25} {mean_assd[i]:.4f}       {std_assd[i]:.4f}")
+print('-' * 50)
+print(f"{'Overall':<25} {np.mean(mean_assd):.4f}       {np.mean(std_assd):.4f}")
+
+
