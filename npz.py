@@ -25,11 +25,13 @@ root = os.path.dirname(os.path.realpath(__file__))
 # output_train = f"{root}/data_npy/train"
 print(root_proj)
 
-ct_path = ""
-ct_label_path = ""
-mr_path = ""
-output_ct_path = "./data/source"
-output_mr_path = "./data/target"
+ct_path = "/mnt/d/sifa_data/raw_data/ct"
+ct_label_path = "/mnt/d/sifa_data/raw_data/ct_label"
+mr_path = "/mnt/d/sifa_data/raw_data/mri"
+# output_ct_path = "./data/source"
+output_ct_path = "/mnt/d/sifa_data/source"
+# output_mr_path = "./data/target"
+output_mr_path = "/mnt/d/sifa_data/target"
 
 os.makedirs(output_ct_path, exist_ok=True)
 os.makedirs(output_mr_path, exist_ok=True)
@@ -140,8 +142,8 @@ def process_labeled_ct(file_path, case_id, matching_label):
     ct_label = np.moveaxis(ct_label, 2, 0)
 
     # Slice at intervals
-    ct_data = interval_slice(ct_data, interval=4)
-    ct_label = interval_slice(ct_label, interval=4)
+    # ct_data = interval_slice(ct_data, interval=4)
+    # ct_label = interval_slice(ct_label, interval=4)
 
     # Remove slices where label is all background (all zeros)
     valid_indices = [i for i in range(len(ct_label)) if np.any(ct_label[i] != 0)]
@@ -172,7 +174,7 @@ def process_mri(file_path, case_id):
 
     mri_data = np.moveaxis(mri_data, 2, 0)  # Move the last axis to the first position
     # Apply interval slice
-    mri_data = interval_slice(mri_data, interval=4)
+    # mri_data = interval_slice(mri_data, interval=4)
 
     # Apply MRI normalization
     mri_normalized = normalize_mri(mri_data).astype(np.float32)
@@ -214,7 +216,7 @@ if __name__ == "__main__":
     print("Processing CT files...")
     ct_files = list(Path(ct_path).glob('*.nii.gz'))
     print(f"Found {len(ct_files)} CT files in {ct_path}")
-
+    # ct_files = ct_files[:1]
     for ct_file in tqdm(ct_files):
         try:
             case_id = extract_ct_case_id(ct_file.name)
@@ -241,8 +243,6 @@ if __name__ == "__main__":
                         label = zoom(label, zoom_factors, order=1)
                 ''''NPZ file, where '[arr_0]' contains the image data, and '[arr_1]' contains the corresponding labels: '''
                 data_dict = {"arr_0": slice, "arr_1": label} 
-                print(slice.shape)
-                print(label.shape)
                 np.savez_compressed(f"{output_base}/{case_id}_s{i:04d}.npz", **data_dict)
         except Exception as e:
             print(f"Error processing {ct_file}: {e}")
@@ -250,6 +250,7 @@ if __name__ == "__main__":
     print("Processing MRI files...")
     mri_files = list(Path(mr_path).glob('*.nii.gz'))
     print(f"Found {len(mri_files)} MRI files in {mr_path}")
+    # mri_files = mri_files[:1]
 
     for mri_file in tqdm(mri_files):
         try:
@@ -272,8 +273,6 @@ if __name__ == "__main__":
                 ''''NPZ file, where '[arr_0]' contains the image data, and '[arr_1]' contains the corresponding labels: '''
                 label = np.zeros_like(slice)
                 data_dict = {"arr_0" : slice, "arr_1" : label}
-                print(slice.shape)
-                print(label.shape)
                 np.savez_compressed(f"{output_base}/{case_id}_s{i:04d}.npz", **data_dict)
         except Exception as e:
             print(f"Error processing {mri_file}: {e}")

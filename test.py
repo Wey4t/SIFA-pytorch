@@ -12,6 +12,7 @@ from metrics import dice_eval,assd_eval,create_visual_anno
 import cv2
 from utils import parse_config
 import os
+import imageio
 
 config = "config/train.cfg"
 config = parse_config(config)
@@ -27,7 +28,23 @@ def save_img(image):
     image = norm_01(image)
     image = (image*255).astype(np.uint8)
     return image    
+def visual_case(f1, f2, title1='pred', title2='out', cmap='gray'):
+    img1 = imageio.imread(f1)
+    img2 = imageio.imread(f2)
+    plt.figure(figsize=(8, 4))
 
+    plt.subplot(1, 2, 1)
+    plt.imshow(img1)
+    plt.title(title1)
+    plt.axis('off')
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(img2)
+    plt.title(title2)
+    plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
     
 device = torch.device('cuda:{}'.format(config['test']['gpu']))
 test_path = config['test']['test_path']
@@ -83,13 +100,15 @@ with torch.no_grad():
 
 all_batch_dice = np.array(all_batch_dice)
 all_batch_assd = np.array(all_batch_assd)
+for i in range(all_batch_dice.shape[0]):
+    print('case {} dice:'.format(i+1),all_batch_dice[i])
+    print('case {} assd:'.format(i+1),all_batch_assd[i])
+    visual_case('{}/xt-{}.jpg'.format(results, i+1), '{}/output-{}.jpg'.format(results, i+1), title1='pred', title2='gt')
 mean_dice = np.mean(all_batch_dice,axis=0) 
 std_dice = np.std(all_batch_dice,axis=0) 
 mean_assd = np.mean(all_batch_assd,axis=0)
-print(all_batch_assd)
 std_assd = np.std(all_batch_assd,axis=0)
 print('-----------')
-print('MYO||LV||RV')
 print('Dice mean:{}'.format(mean_dice))
 print('Dice std:{}'.format(std_dice))
 print('total mean dice:',np.mean(mean_dice))

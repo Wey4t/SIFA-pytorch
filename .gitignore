@@ -1,0 +1,5 @@
+data/
+__pycache__/
+sample_image/
+save_model/
+results/
